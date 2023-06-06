@@ -64,3 +64,26 @@ stages:
 
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
+
+- stage: 'Deploy'
+  displayName: 'Deploy the web application'
+  dependsOn: Build # Prima deve aver completato l'esecuzione lo stage precedente.
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-20.04'
+    environment: dev # Questo è il nome dell'ambiente creato in Azure Pipelines.
+    variables:
+    - group: Release # Questo è il nome del gruppo di variabili creato nella Library di Azure Pipelines.
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              appName: '$(WebAppName)' # Nome di una variabile creata nella Library di Azure Pipelines.
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
